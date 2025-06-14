@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stripe Dynamic Checkout</title>
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+    <h2>Buy a Product</h2>
+
+    <form id="checkout-form">
+        <label for="product_name">Product Name:</label><br>
+        <input type="text" id="product_name" name="product_name" value="Cool Book" required><br><br>
+
+        <label for="amount">Price (USD):</label><br>
+        <input type="number" id="amount" name="amount" value="25" required><br><br>
+
+        <label for="quantity">Quantity:</label><br>
+        <input type="number" id="quantity" name="quantity" value="1" required><br><br>
+
+        <button type="submit">Pay with Stripe</button>
+    </form>
+
+    <script>
+        const stripe = Stripe("{{ stripe_publishable_key }}");
+
+        const form = document.getElementById("checkout-form");
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const product_name = document.getElementById("product_name").value;
+            const amount = parseFloat(document.getElementById("amount").value) * 100; // Convert to cents
+            const quantity = parseInt(document.getElementById("quantity").value);
+
+            fetch("/create-checkout-session/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    product_name: product_name,
+                    amount: amount,
+                    quantity: quantity
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.id) {
+                    stripe.redirectToCheckout({ sessionId: data.id });
+                } else {
+                    alert("Error creating checkout session.");
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+        });
+    </script>
+</body>
+</html>
